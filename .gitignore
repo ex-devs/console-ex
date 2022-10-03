@@ -1,0 +1,6 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/ExtendedConsole/obj
+/ExtendedConsole/.vs/ExtendedConsole/v17
