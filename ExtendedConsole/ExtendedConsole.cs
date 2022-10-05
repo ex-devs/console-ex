@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Text;
 
 namespace ExtendedConsole
 {
@@ -6,15 +7,150 @@ namespace ExtendedConsole
     {
         public string Title
         { 
-            get { return Title; }
+            get { return Console.Title; }
             set { Console.Title = value; } 
         } 
-        public int Width { get { return Console.WindowWidth; } }
-        public int Height { get { return Console.WindowHeight; } }
-        public int FontSize { get; }
+        public CONSOLE_FONT_INFO_EX Font
+        {
+            get
+            {
+                IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+                if (hnd != INVALID_HANDLE_VALUE)
+                {
+                    CONSOLE_FONT_INFO_EX info = new CONSOLE_FONT_INFO_EX();
+                    info.cbSize = (uint)Marshal.SizeOf(info);
+                    if (GetCurrentConsoleFontEx(hnd, false, ref info))
+                    {
+                        return info;
+                    }
+                }
+                throw new Exception();
+            }
+        }
+        public int WindowWidth 
+        { 
+            get { return Console.WindowWidth; } 
+        }
+        public int WindowHeight
+        { 
+            get { return Console.WindowHeight; } 
+        }
+        public int WindowTop
+        {
+            get { return Console.WindowTop; }
+            set { Console.WindowTop = value; }
+        }
+        public int WindowLeft
+        {
+            get { return Console.WindowLeft; }
+            set { Console.WindowLeft = value; }
+        }
+        public int LargestWindowWidth
+        {
+            get { return Console.LargestWindowWidth; }
+        }
+        public int LargestWindowHeight
+        {
+            get { return Console.LargestWindowHeight; }
+        }
+        public int FontSize 
+        { 
+            get; 
+        }
+        public int BufferHeight
+        {
+            get { return Console.BufferHeight; }
+            set { Console.BufferHeight = value; }
+        }
+        public int BufferWidth
+        {
+            get { return Console.BufferWidth; }
+            set { Console.BufferWidth = value; }
+        }
+        public int CursorLeft
+        {
+            get { return Console.CursorLeft; }
+            set { Console.CursorLeft = value; }
+        }
+        public int CursorTop
+        {
+            get { return Console.CursorTop; }
+            set { Console.CursorTop = value; }
+        }
+        public int CursorSize
+        {
+            get { return Console.CursorSize; }
+            set { Console.CursorSize = value; }
+        }
+        public bool NumberLock
+        {
+            get { return Console.NumberLock; }
+        }
+        public bool KeyAvailable
+        {
+            get { return Console.KeyAvailable; }
+        }
+        public bool IsOutputRedirected
+        {
+            get { return Console.IsOutputRedirected; }
+        }
+        public bool IsInputRedirected
+        {
+            get { return Console.IsInputRedirected; }
+        }
+        public bool IsErrorRedirected
+        {
+            get { return Console.IsErrorRedirected; }
+        }
+        public bool TreatConrolCAsInput
+        {
+            get { return Console.TreatControlCAsInput; }
+            set { Console.TreatControlCAsInput = value; }
+        }
+        public bool CursorVisible
+        {
+            get { return Console.CursorVisible; }
+            set { Console.CursorVisible = value; }
+        }
+        public bool CapsLock
+        {
+            get { return Console.CapsLock; }
+        }
+        public Encoding InputEncoding
+        {
+            get { return Console.InputEncoding; }
+            set { Console.InputEncoding = value; }
+        }
+        public Encoding OutputEncoding
+        {
+            get { return Console.OutputEncoding; }
+            set { Console.OutputEncoding = value; }
+        }
+        public TextWriter Error
+        {
+            get { return Console.Error; }       
+        }
+        public TextReader In
+        {
+            get { return Console.In; }
+        }
+        public TextWriter Out
+        {
+            get { return Console.Out; }
+        }
+        public ConsoleColor BackroundColor
+        {
+            get { return Console.BackgroundColor; }
+            set { Console.BackgroundColor = value; }
+        }
+        public ConsoleColor ForegroundColor
+        {
+            get { return Console.ForegroundColor; }
+            set { Console.ForegroundColor = value; }
+        }
 
         private const short BASE_FONT_SIZE = 24;
-        private const string BASE_FONT = "Lucida Console";
+        private const string BASE_FONT = "Consolas";
 
         public enum Analytics
         {
@@ -45,8 +181,12 @@ namespace ExtendedConsole
         private void SetWindowSize()
         {
             double scale = BASE_FONT_SIZE / FontSize;
-            int scaledWith = (int)(Width * scale);
-            int scaledHeight = (int)(Height * scale);
+            int scaledWith = (int)(WindowWidth * scale);
+            int scaledHeight = (int)(WindowHeight * scale);
+            if(scaledWith > Console.LargestWindowWidth)
+                scaledWith = Console.LargestWindowWidth;
+            if(scaledHeight > Console.LargestWindowHeight)
+                scaledHeight = Console.LargestWindowHeight;
             Console.SetWindowSize(scaledWith, scaledHeight);
             Console.SetBufferSize(scaledWith, scaledHeight);
         }
@@ -54,6 +194,7 @@ namespace ExtendedConsole
         public void SetCursorPosition(int left, int top)
             => Console.SetCursorPosition(left, top);
 
+        #region SetFont
         private unsafe void SetFont(short fontSize, string font)
         {
             IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -61,10 +202,9 @@ namespace ExtendedConsole
             {
                 CONSOLE_FONT_INFO_EX info = new CONSOLE_FONT_INFO_EX();
                 info.cbSize = (uint)Marshal.SizeOf(info);
-                // First determine whether there's already a TrueType font.
                 if (GetCurrentConsoleFontEx(hnd, false, ref info))
                 {
-                    // Set console font to Lucida Console.
+                    // Set console font to Consola
                     CONSOLE_FONT_INFO_EX newInfo = new CONSOLE_FONT_INFO_EX();
                     newInfo.cbSize = (uint)Marshal.SizeOf(newInfo);
                     newInfo.FontFamily = TMPF_TRUETYPE;
@@ -112,7 +252,7 @@ namespace ExtendedConsole
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal unsafe struct CONSOLE_FONT_INFO_EX
+        public unsafe struct CONSOLE_FONT_INFO_EX
         {
             internal uint cbSize;
             internal uint nFont;
@@ -121,5 +261,6 @@ namespace ExtendedConsole
             internal int FontWeight;
             internal fixed char FaceName[LF_FACESIZE];
         }
+        #endregion
     }
 }
