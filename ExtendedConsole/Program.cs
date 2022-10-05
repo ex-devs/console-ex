@@ -12,7 +12,7 @@ namespace ExtendedConsole
     {
         public static void Main()
         {
-            DVDScreensaver.Start(30);
+            DVDScreensaver.Start(60);
         }
     }
 }

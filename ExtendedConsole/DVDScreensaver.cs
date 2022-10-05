@@ -27,7 +27,6 @@ namespace ExtendedConsole
                 CursorVisible = false
             };
 
-
             Stopwatch sw = new();
             sw.Start();
 
@@ -36,8 +35,9 @@ namespace ExtendedConsole
 
             DVD_Lines = DVD_Raw.Split(Environment.NewLine);
 
-            int top = 0;
-            int left = 0;
+            Random random = new();
+            int top = random.Next(0, Console.BufferHeight - DVD_Lines.Length);
+            int left = random.Next(0, Console.BufferWidth - DVD_Lines[1].Length);
 
             int directionX = 0;
             int directionY = 0;;
@@ -47,6 +47,8 @@ namespace ExtendedConsole
 
             while (true)
             {
+                if (ExConsole.CursorVisible) ExConsole.CursorVisible = false;
+
                 GetDirections(left, top, ref directionX, ref directionY);
 
                 GetNextCursorPos(directionX, directionY, ref left, ref top);
