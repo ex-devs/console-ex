@@ -123,15 +123,10 @@ namespace ExtendedConsole
 
         private static bool IsCornerHit(int left, int top)
         {
-            if(left == Console.BufferWidth - DVD_Lines[1].Length - 1)
+            if(left == 0 || left == Console.BufferWidth - DVD_Lines[1].Length - 1)
             {
-                if (top == Console.BufferHeight - DVD_Lines.Length - 1) return true;
                 if (top == 0) return true;
-            }
-            if(left == 0)
-            {
                 if (top == Console.BufferHeight - DVD_Lines.Length - 1) return true;
-                if (top == 0) return true;
             }
 
             return false;
