@@ -20,9 +20,9 @@ namespace ExtendedConsole
 
         private static string[] DVD_Lines = Array.Empty<string>();
 
-        public static void Start(int fpsCap)
+        public static void Start(int fpsCap, bool clearScreen = false, bool randomColors = false)
         {
-            ExtendedConsole ExConsole = new(100, 20, ExtendedConsole.Analytics.None, 7)
+            ExtendedConsole ExConsole = new(101, 20, ExtendedConsole.Analytics.None, 7)
             {
                 CursorVisible = false
             };
@@ -31,7 +31,7 @@ namespace ExtendedConsole
             sw.Start();
 
             // ??????????? i dont know why this works
-            double msPerFrame = (1.0/fpsCap) * 500;
+            double msPerFrame = (1.0/fpsCap) * 1000;
 
             DVD_Lines = DVD_Raw.Split(Environment.NewLine);
 
@@ -45,6 +45,8 @@ namespace ExtendedConsole
             double frames = 0;
             double elapsed = 0;
 
+            int cornersHit = 0;
+
             while (true)
             {
                 if (ExConsole.CursorVisible) ExConsole.CursorVisible = false;
@@ -53,12 +55,14 @@ namespace ExtendedConsole
 
                 GetNextCursorPos(directionX, directionY, ref left, ref top);
 
-                Console.Clear();
+                if (clearScreen) Console.Clear();
 
                 ExConsole.CursorLeft = left;
                 ExConsole.CursorTop = top;
 
-                DrawDvD(left, top);
+                DrawDvD(left, top, randomColors);
+
+                if (IsCornerHit(left, top)) cornersHit++;
 
                 // Wait for next Frame
                 double ms = sw.ElapsedMilliseconds;
@@ -68,18 +72,25 @@ namespace ExtendedConsole
                 sw.Stop();
                 frames++;
                 elapsed += sw.ElapsedMilliseconds;
-                ExConsole.Title = $"{(frames / elapsed) * 1000:f2} FPS | CursorPosition({left},{top}) | {ms:f0} ms";
+                ExConsole.Title = $"{(frames / elapsed) * 1000:f2} FPS | CursorPosition({left},{top}) | {ms:f0} ms | Corners: {cornersHit}";
                 sw.Restart();
             }
         }
 
-        private static void DrawDvD(int left, int right)
+        private static void DrawDvD(int left, int right, bool randomColor)
         {
+            if(randomColor) Console.ForegroundColor = GetRandomColor();
             for (int i = 0; i < DVD_Lines.Length; i++)
             {
                 Console.Write(DVD_Lines[i]);
                 Console.SetCursorPosition(left, right + i);
             }
+        }
+
+        private static ConsoleColor GetRandomColor()
+        {
+            Random random = new();
+            return (ConsoleColor)random.Next(1, 14);
         }
 
         private static void GetNextCursorPos(int directionX, int directionY, ref int left, ref int top)
@@ -108,6 +119,22 @@ namespace ExtendedConsole
                 directionY = 0;
             else if (top >= Console.BufferHeight - DVD_Lines.Length)
                 directionY = 1;
+        }
+
+        private static bool IsCornerHit(int left, int top)
+        {
+            if(left == Console.BufferWidth - DVD_Lines[1].Length - 1)
+            {
+                if (top == Console.BufferHeight - DVD_Lines.Length - 1) return true;
+                if (top == 0) return true;
+            }
+            if(left == 0)
+            {
+                if (top == Console.BufferHeight - DVD_Lines.Length - 1) return true;
+                if (top == 0) return true;
+            }
+
+            return false;
         }
     }
 }
