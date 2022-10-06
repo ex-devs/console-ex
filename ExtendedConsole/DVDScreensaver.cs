@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 
 namespace ExtendedConsole
 {
@@ -60,7 +54,8 @@ namespace ExtendedConsole
                 ExConsole.CursorLeft = left;
                 ExConsole.CursorTop = top;
 
-                DrawDvD(left, top, randomColors);
+                if (frames % 40 == 0) DrawDvD(left, top, randomColors);
+                else DrawDvD(left, top);
 
                 if (IsCornerHit(left, top)) cornersHit++;
 
@@ -79,7 +74,13 @@ namespace ExtendedConsole
 
         private static void DrawDvD(int left, int right, bool randomColor)
         {
-            if(randomColor) Console.ForegroundColor = GetRandomColor();
+            if (randomColor)
+                Console.ForegroundColor = GetRandomColor();
+
+            DrawDvD(left, right);
+        }
+        private static void DrawDvD(int left, int right)
+        {
             for (int i = 0; i < DVD_Lines.Length; i++)
             {
                 Console.Write(DVD_Lines[i]);
@@ -97,10 +98,10 @@ namespace ExtendedConsole
         {
             // Right
             if (directionX == 0)
-                left++;
+                left += 2;
             // Left
             else if (directionX == 1)
-                left--;
+                left -= 2;
             // Top
             if (directionY == 0)
                 top++;
@@ -111,7 +112,7 @@ namespace ExtendedConsole
 
         private static void GetDirections(int left, int top, ref int directionX, ref int directionY)
         {
-            if (left < 1)
+            if (left < 2)
                 directionX = 0;
             else if (left >= Console.BufferWidth - DVD_Lines[1].Length)
                 directionX = 1;
