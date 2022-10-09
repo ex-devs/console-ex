@@ -1,12 +1,14 @@
 ﻿using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Text;
 
 namespace ExtendedConsole
 {
     public class ExtendedConsole
     {
+        #region Properties
         public string Title
-        { 
+        {
             get { return Console.Title; }
             set { Console.Title = value; } 
         } 
@@ -17,7 +19,7 @@ namespace ExtendedConsole
                 IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
                 if (hnd != INVALID_HANDLE_VALUE)
                 {
-                    CONSOLE_FONT_INFO_EX info = new CONSOLE_FONT_INFO_EX();
+                    CONSOLE_FONT_INFO_EX info = new();
                     info.cbSize = (uint)Marshal.SizeOf(info);
                     if (GetCurrentConsoleFontEx(hnd, false, ref info))
                     {
@@ -130,13 +132,13 @@ namespace ExtendedConsole
         {
             get { return Console.Error; }       
         }
-        public TextReader In
-        {
-            get { return Console.In; }
-        }
         public TextWriter Out
         {
             get { return Console.Out; }
+        }
+        public TextReader In
+        {
+            get { return Console.In; }
         }
         public ConsoleColor BackroundColor
         {
@@ -148,9 +150,7 @@ namespace ExtendedConsole
             get { return Console.ForegroundColor; }
             set { Console.ForegroundColor = value; }
         }
-
-        private const short BASE_FONT_SIZE = 24;
-        private const string BASE_FONT = "Consolas";
+        #endregion
 
         public enum Analytics
         {
@@ -159,6 +159,10 @@ namespace ExtendedConsole
             Advanced,
         }
 
+        private const short BASE_FONT_SIZE = 24;
+        private const string BASE_FONT = "Consolas";
+
+        #region Constructors
         public ExtendedConsole(int width, int height) : this(width, height, Analytics.None, BASE_FONT_SIZE, BASE_FONT)
         {
 
@@ -177,6 +181,7 @@ namespace ExtendedConsole
             SetFont(fontSize, font);
             SetWindowSize();
         }
+        #endregion
 
         private void SetWindowSize()
         {
@@ -194,21 +199,26 @@ namespace ExtendedConsole
         public void SetCursorPosition(int left, int top)
             => Console.SetCursorPosition(left, top);
 
-        #region SetFont
+        /// <summary>
+        /// credit: https://stackoverflow.com/questions/47014258/c-sharp-modify-console-font-font-size-at-runtime
+        /// </summary>
+        /// <param name="fontSize"></param>
+        /// <param name="font"></param>
+        #region Change Font
         private unsafe void SetFont(short fontSize, string font)
         {
             IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
             if (hnd != INVALID_HANDLE_VALUE)
             {
-                CONSOLE_FONT_INFO_EX info = new CONSOLE_FONT_INFO_EX();
+                CONSOLE_FONT_INFO_EX info = new();
                 info.cbSize = (uint)Marshal.SizeOf(info);
                 if (GetCurrentConsoleFontEx(hnd, false, ref info))
                 {
                     // Set console font to Consola
-                    CONSOLE_FONT_INFO_EX newInfo = new CONSOLE_FONT_INFO_EX();
+                    CONSOLE_FONT_INFO_EX newInfo = new();
                     newInfo.cbSize = (uint)Marshal.SizeOf(newInfo);
                     newInfo.FontFamily = TMPF_TRUETYPE;
-                    IntPtr ptr = new IntPtr(newInfo.FaceName);
+                    IntPtr ptr = new(newInfo.FaceName);
                     Marshal.Copy(font.ToCharArray(), 0, ptr, font.Length);
                     // Get some settings from current font.
                     newInfo.dwFontSize = new COORD(fontSize, fontSize);
@@ -236,7 +246,7 @@ namespace ExtendedConsole
         private const int STD_OUTPUT_HANDLE = -11;
         private const int TMPF_TRUETYPE = 4;
         private const int LF_FACESIZE = 32;
-        private static IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+        private static readonly IntPtr INVALID_HANDLE_VALUE = new(-1);
 
         [StructLayout(LayoutKind.Sequential)]
         internal struct COORD
