@@ -16,10 +16,7 @@ namespace ExtendedConsole
 
         public static void Start(int fpsCap, bool clearScreen = false, bool randomColors = false)
         {
-            ExtendedConsole ExConsole = new(101, 20, ExtendedConsole.Analytics.None, 7)
-            {
-                CursorVisible = false
-            };
+            ExtendedConsole.SetFont(7);
 
             Stopwatch sw = new();
             sw.Start();
@@ -43,16 +40,14 @@ namespace ExtendedConsole
 
             while (true)
             {
-                if (ExConsole.CursorVisible) ExConsole.CursorVisible = false;
-
                 GetDirections(left, top, ref directionX, ref directionY);
 
                 GetNextCursorPos(directionX, directionY, ref left, ref top);
 
                 if (clearScreen) Console.Clear();
 
-                ExConsole.CursorLeft = left;
-                ExConsole.CursorTop = top;
+                Console.CursorLeft = left;
+                Console.CursorTop = top;
 
                 if (frames % 40 == 0) DrawDvD(left, top, randomColors);
                 else DrawDvD(left, top);
@@ -67,7 +62,7 @@ namespace ExtendedConsole
                 sw.Stop();
                 frames++;
                 elapsed += sw.ElapsedMilliseconds;
-                ExConsole.Title = $"{(frames / elapsed) * 1000:f2} FPS | CursorPosition({left},{top}) | {ms:f0} ms | Corners: {cornersHit}";
+                Console.Title = $"{(frames / elapsed) * 1000:f2} FPS | CursorPosition({left},{top}) | {ms:f0} ms | Corners: {cornersHit}";
                 sw.Restart();
             }
         }
