@@ -4,12 +4,9 @@ namespace ExtendedConsole
 {
     public static class ImageToAscii
     {
-        public static string[] Convert(string source)
+        public static string[] Convert(Bitmap bitmap)
         {
             ExtendedConsole.SetFont(1);
-
-            Bitmap bitmap = new(source);
-            if (bitmap == null) throw new Exception();
 
             var colors = GetAverageColors(bitmap);
 
@@ -25,6 +22,13 @@ namespace ExtendedConsole
             }
 
             return result.ToArray();
+        }
+        public static string[] Convert(string source)
+        {
+            Bitmap bitmap = new(source);
+            if (bitmap == null) throw new Exception();
+
+            return Convert(bitmap);
         }
 
         private static string GetChar(Color color)
@@ -45,14 +49,14 @@ namespace ExtendedConsole
             int xStep = (int)Math.Ceiling((double)bitmap.Width / Console.BufferWidth);
             int yStep = (int)Math.Ceiling((double)bitmap.Height / Console.BufferHeight);
 
-            List<List<Color>> averageColors = new();
-
+            List<List<Color>> averageColors = new(bitmap.Width / xStep * bitmap.Height / yStep);
+           
             for (int i = 0; i < bitmap.Height - yStep; i += yStep)
             {
                 List<Color> averageColorsRow = new();
                 for (int j = 0; j < bitmap.Width - xStep; j += xStep)
                 {
-                    List<Color> list = new();
+                    List<Color> list = new(yStep * xStep);
                     for (int k = i; k < i + yStep; k++)
                     {
                         for (int l = j; l < j + xStep; l++)

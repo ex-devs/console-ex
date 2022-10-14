@@ -108,7 +108,7 @@ namespace ExtendedConsole
         private static readonly IntPtr INVALID_HANDLE_VALUE = new(-1);
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct COORD
+        public struct COORD
         {
             internal short X;
             internal short Y;
