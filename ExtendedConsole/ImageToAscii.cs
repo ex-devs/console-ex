@@ -1,94 +1,91 @@
 ﻿using System.Drawing;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace ExtendedConsole
 {
     public static class ImageToAscii
     {
-        public static string[] Convert(Bitmap bitmap)
+        public static string Convert(string filename)
         {
-            ExtendedConsole.SetFont(1);
-
-            var colors = GetAverageColors(bitmap);
-
-            List<string> result = new List<string>();
-            for (int i = 0; i < colors.Count; i++)
-            {
-                string row = "";
-                for (int j = 0; j < colors[i].Count; j++)
-                {
-                    row += GetChar(colors[i][j]);
-                }
-                result.Add(row);
-            }
-
-            return result.ToArray();
+            return Convert(new Bitmap(filename));
         }
-        public static string[] Convert(string source)
+        public static string Convert(Bitmap? bitmap)
         {
-            Bitmap bitmap = new(source);
-            if (bitmap == null) throw new Exception();
-
-            return Convert(bitmap);
+            if (bitmap == null) return string.Empty;
+            return GetAverageColors(bitmap);
         }
 
-        private static string GetChar(Color color)
+        private static string GetChar(float brightness)
         {
             const string chars = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
-            var brightness = color.GetBrightness();
 
-            float step = 1 / ((float)chars.Length-1);
+            double step = 1.0 / (chars.Length - 1);
 
             for (int i = 0; i < chars.Length; i++)
                 if (brightness <= i * step && brightness >= (i - 1) * step) return new string(chars[i], 1);
 
-            return " ";
+            return new string(chars[0], 1);
         }
 
-        private static List<List<Color>> GetAverageColors(Bitmap bitmap)
-        {
-            int xStep = (int)Math.Ceiling((double)bitmap.Width / Console.BufferWidth);
-            int yStep = (int)Math.Ceiling((double)bitmap.Height / Console.BufferHeight);
 
-            List<List<Color>> averageColors = new(bitmap.Width / xStep * bitmap.Height / yStep);
-           
-            for (int i = 0; i < bitmap.Height - yStep; i += yStep)
+        public static string GetAverageColors(Bitmap bitmap)
+        {
+            int height = bitmap.Height;
+            int width = bitmap.Width;
+
+            int xStep = (int)Math.Ceiling((double)width / Console.BufferWidth);
+            int yStep = (int)Math.Ceiling((double)height / Console.BufferHeight);
+
+            BitmapData data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
+            IntPtr ptr = data.Scan0;
+            int bytes = Math.Abs(data.Stride) * data.Height;
+            byte[] bitmapData = new byte[bytes];
+            Marshal.Copy(ptr, bitmapData, 0, bytes);
+
+            int resizedWidth = (int)Math.Ceiling((double)width / xStep);
+            int resizedHeight = (int)Math.Ceiling((double)height / yStep);
+
+            int elementsPerGroup = xStep * yStep;
+            StringBuilder frame = new(resizedHeight * resizedWidth);
+            StringBuilder line = new(resizedWidth);
+            float r = 0;
+            float g = 0;
+            float b = 0;
+
+            // @ImZorg 😎😎😎😎😎😎😎
+            for (int row = 0; row < height; row += yStep) 
             {
-                List<Color> averageColorsRow = new();
-                for (int j = 0; j < bitmap.Width - xStep; j += xStep)
+                line.Clear();
+                for (int col = 0; col < width; col += xStep) 
                 {
-                    List<Color> list = new(yStep * xStep);
-                    for (int k = i; k < i + yStep; k++)
+                    r = 0;
+                    g = 0;
+                    b = 0;
+
+                    for (int i = row; i < height && i < row + yStep; i++)
                     {
-                        for (int l = j; l < j + xStep; l++)
+                        for (int j = col; j < width && j < col + xStep; j++)
                         {
-                            list.Add(bitmap.GetPixel(l, k));
+                            r += bitmapData[3 * (width * i + j)];
+                            g += bitmapData[3 * (width * i + j) + 1];
+                            b += bitmapData[3 * (width * i + j) + 2];
                         }
                     }
 
-                    int avgA = 0;
-                    int avgR = 0;
-                    int avgG = 0;
-                    int avgB = 0;
-                    foreach (Color c in list)
-                    {
-                        avgA += c.A;
-                        avgR += c.R;
-                        avgG += c.G;
-                        avgB += c.B;
-                    }
-                    averageColorsRow.Add(Color.FromArgb(avgA / list.Count, avgR / list.Count, avgG / list.Count, avgB / list.Count));
+                    line.Append(GetChar(Color.GetBrightness((byte)(r / elementsPerGroup), (byte)(g / elementsPerGroup), (byte)(b / elementsPerGroup))));
                 }
-                averageColors.Add(averageColorsRow);
+                frame.AppendLine(line.ToString());
             }
-            return averageColors;
+            bitmap.UnlockBits(data);
+            return frame.ToString();
         }
 
-        public static void Print(string[] asciiImage)
+        public static void Print(string asciiImage)
         {
-            foreach (string line in asciiImage)
-            {
-                Console.WriteLine(line);
-            }
+            Console.SetCursorPosition(0, 0);
+            Console.WriteLine(asciiImage);
         }
     }
 }

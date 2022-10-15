@@ -5,22 +5,53 @@ namespace ExtendedConsole
 {
     public static class VideoToAscii
     {
-        public static List<string[]> Convert(string filename)
+        public static List<string> Convert(string filename, out double framerate)
         {
-            List<string[]> Frames = new();
+            List<string> frames = new();
             int i = 0;
             using (var videoFrameReader = new VideoFrameReader(filename))
             {
+                int totalFrames = (int)(videoFrameReader.FrameRate * videoFrameReader.Duration.TotalSeconds);
+                ProgressBar bar = new(totalFrames, '#', '-', ConsoleColor.Green, ConsoleColor.White);
                 var watch = new Stopwatch();
                 foreach(var frame in videoFrameReader)
                 {
                     watch.Restart();
-                    Frames.Add(ImageToAscii.Convert(frame));
+                    frames.Add(ImageToAscii.Convert(frame));
                     i++; 
-                    Console.Title = $"{i} | {watch.ElapsedMilliseconds} ms";
+                    Console.Title = $"{i}/{totalFrames} | {watch.ElapsedMilliseconds} ms";
+                    bar.Update(i);
                 }
+                framerate = videoFrameReader.FrameRate;
             }
-            return Frames;
+            Console.Clear();
+            return frames;
+        }
+
+        public static void Print(List<string> frames, double frameRate)
+        {
+            var watch = new Stopwatch();
+            long ms = 0;
+
+            double msPerFrame = 1 / (frameRate * 1 / 1000);
+
+            int i = 0;
+            foreach (var frame in frames)
+            {
+                watch.Restart();
+
+                Console.SetCursorPosition(0, 0);
+                Console.WriteLine(frame);
+
+                while (watch.ElapsedMilliseconds < msPerFrame)
+                {
+
+                }
+
+                ms += watch.ElapsedMilliseconds;
+                i++;
+                Console.Title = $"{i}/{frames.Count} | FPS: {i / (ms / 1000.0):f2}";
+            }
         }
     }
 }
