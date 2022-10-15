@@ -131,5 +131,48 @@ namespace ExtendedConsole
             internal fixed char FaceName[LF_FACESIZE];
         }
         #endregion
+
+        #region WriteConsoleOutput
+        [StructLayout(LayoutKind.Explicit)]
+        public struct CHAR_INFO
+        {
+            [FieldOffset(0)]
+            internal char UnicodeChar;
+            [FieldOffset(0)]
+            internal char AsciiChar;
+            [FieldOffset(2)] //2 bytes seems to work properly
+            internal UInt16 Attributes;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SMALL_RECT
+        {
+            public short Left;
+            public short Top;
+            public short Right;
+            public short Bottom;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool WriteConsoleOutput(
+        IntPtr hConsoleOutput,
+        CHAR_INFO[] lpBuffer,
+        COORD dwBufferSize,
+        COORD dwBufferCoord,
+        ref SMALL_RECT lpWriteRegion
+        );
+
+        public static void WriteBuffer(CHAR_INFO[] buffer, short rows, short columns)
+        {
+            IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+            SMALL_RECT lpBuffer = new SMALL_RECT() { Left = 0, Top = 0, Right = (short)(Console.BufferWidth - 1), Bottom = (short)(Console.BufferHeight - 1) };
+            if (hnd != INVALID_HANDLE_VALUE)
+            {
+                WriteConsoleOutput(hnd, buffer, new COORD() { X = columns, Y = rows }, new COORD() { X = 0, Y = 0 }, ref lpBuffer);
+            }
+
+                
+        }
+        #endregion
     }
 }

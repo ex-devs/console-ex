@@ -7,30 +7,32 @@ namespace ExtendedConsole
 {
     public static class ImageToAscii
     {
-        public static string Convert(string filename)
+        public static ExtendedConsole.CHAR_INFO[] Convert(string filename, out short rows, out short cols)
         {
-            return Convert(new Bitmap(filename));
+            return Convert(new Bitmap(filename), out rows, out cols);
         }
-        public static string Convert(Bitmap? bitmap)
+        public static ExtendedConsole.CHAR_INFO[] Convert(Bitmap? bitmap, out short rows, out short cols)
         {
-            if (bitmap == null) return string.Empty;
-            return GetAverageColors(bitmap);
+            rows = 0;
+            cols = 0;
+            if (bitmap == null) return null;
+            return GetAverageColors(bitmap, out rows, out cols);
         }
 
-        private static string GetChar(float brightness)
+        private static char GetChar(float brightness)
         {
             const string chars = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
 
             double step = 1.0 / (chars.Length - 1);
 
             for (int i = 0; i < chars.Length; i++)
-                if (brightness <= i * step && brightness >= (i - 1) * step) return new string(chars[i], 1);
+                if (brightness <= i * step && brightness >= (i - 1) * step) return chars[i];
 
-            return new string(chars[0], 1);
+            return chars[0];
         }
 
 
-        public static string GetAverageColors(Bitmap bitmap)
+        public static ExtendedConsole.CHAR_INFO[] GetAverageColors(Bitmap bitmap, out short rows, out short cols)
         {
             int height = bitmap.Height;
             int width = bitmap.Width;
@@ -47,22 +49,25 @@ namespace ExtendedConsole
             int resizedWidth = (int)Math.Ceiling((double)width / xStep);
             int resizedHeight = (int)Math.Ceiling((double)height / yStep);
 
+            rows = (short)resizedHeight;
+            cols = (short)resizedWidth;
+
             int elementsPerGroup = xStep * yStep;
-            StringBuilder frame = new(resizedHeight * resizedWidth);
-            StringBuilder line = new(resizedWidth);
+            ExtendedConsole.CHAR_INFO[] avgColors = new ExtendedConsole.CHAR_INFO[resizedHeight * resizedWidth];
             float r = 0;
             float g = 0;
             float b = 0;
+            int avgColorsIndex = 0;
 
             // @ImZorg 😎😎😎😎😎😎😎
             for (int row = 0; row < height; row += yStep) 
             {
-                line.Clear();
                 for (int col = 0; col < width; col += xStep) 
                 {
                     r = 0;
                     g = 0;
                     b = 0;
+                    avgColorsIndex = (row / yStep) * resizedWidth + (col / xStep);
 
                     for (int i = row; i < height && i < row + yStep; i++)
                     {
@@ -74,12 +79,12 @@ namespace ExtendedConsole
                         }
                     }
 
-                    line.Append(GetChar(Color.GetBrightness((byte)(r / elementsPerGroup), (byte)(g / elementsPerGroup), (byte)(b / elementsPerGroup))));
+                    avgColors[avgColorsIndex].UnicodeChar = GetChar(Color.GetBrightness((byte)(r / elementsPerGroup), (byte)(g / elementsPerGroup), (byte)(b / elementsPerGroup)));
+                    avgColors[avgColorsIndex].Attributes = 0x0008 | 0x0004 | 0x0002 | 0x0001;
                 }
-                frame.AppendLine(line.ToString());
             }
             bitmap.UnlockBits(data);
-            return frame.ToString();
+            return avgColors;
         }
 
         public static void Print(string asciiImage)

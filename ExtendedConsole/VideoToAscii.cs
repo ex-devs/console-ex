@@ -5,9 +5,11 @@ namespace ExtendedConsole
 {
     public static class VideoToAscii
     {
-        public static List<string> Convert(string filename, out double framerate)
+        public static List<ExtendedConsole.CHAR_INFO[]> Convert(string filename, out double framerate, out short rows, out short cols)
         {
-            List<string> frames = new();
+            List<ExtendedConsole.CHAR_INFO[]> frames = new();
+            rows = 0;
+            cols = 0;
             int i = 0;
             using (var videoFrameReader = new VideoFrameReader(filename))
             {
@@ -17,7 +19,7 @@ namespace ExtendedConsole
                 foreach(var frame in videoFrameReader)
                 {
                     watch.Restart();
-                    frames.Add(ImageToAscii.Convert(frame));
+                    frames.Add(ImageToAscii.Convert(frame, out rows, out cols));
                     i++; 
                     Console.Title = $"{i}/{totalFrames} | {watch.ElapsedMilliseconds} ms";
                     bar.Update(i);
@@ -28,7 +30,7 @@ namespace ExtendedConsole
             return frames;
         }
 
-        public static void Print(List<string> frames, double frameRate)
+        public static void Print(List<ExtendedConsole.CHAR_INFO[]> frames, short rows, short cols, double frameRate)
         {
             var watch = new Stopwatch();
             long ms = 0;
@@ -40,8 +42,9 @@ namespace ExtendedConsole
             {
                 watch.Restart();
 
-                Console.SetCursorPosition(0, 0);
-                Console.WriteLine(frame);
+                //Console.SetCursorPosition(0, 0);
+                ExtendedConsole.WriteBuffer(frame, rows, cols);
+                //Console.WriteLine(frame);
 
                 while (watch.ElapsedMilliseconds < msPerFrame)
                 {
