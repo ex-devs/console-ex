@@ -17,16 +17,12 @@ namespace ExtendedConsole
             return GetAverageColors(bitmap);
         }
 
+        const string chars = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+        static readonly int maxIndex = chars.Length - 1;
+
         private static char GetChar(float brightness)
         {
-            const string chars = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
-
-            double step = 1.0 / (chars.Length - 1);
-
-            for (int i = 0; i < chars.Length; i++)
-                if (brightness <= i * step && brightness >= (i - 1) * step) return chars[i];
-
-            return chars[0];
+            return chars[(int)Math.Ceiling(brightness * maxIndex)];
         }
 
 
@@ -81,7 +77,6 @@ namespace ExtendedConsole
                     }
 
                     avgColors[avgColorsIndex] = (byte)GetChar(Color.GetBrightness((byte)(r / elementsPerGroup), (byte)(g / elementsPerGroup), (byte)(b / elementsPerGroup)));
-                    //avgColors[avgColorsIndex].Attributes = 0x0008 | 0x0004 | 0x0002 | 0x0001;
                 }
             }
             bitmap.UnlockBits(data);

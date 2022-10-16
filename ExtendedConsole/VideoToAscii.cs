@@ -31,32 +31,28 @@ namespace ExtendedConsole
         public static void Print(List<byte[]> frames, double frameRate)
         {
             Console.ReadKey();
-            //byte[] buffer = System.Text.Encoding.ASCII.GetBytes(new string('F', Console.BufferHeight * Console.BufferWidth));
-            //byte[] buffer = System.Text.Encoding.ASCII.GetBytes(new string('F', 4));
             var watch = new Stopwatch();
 
             double msPerFrame = 1.0 / (frameRate * (1.0 / 1000.0));
+            long frequency = Stopwatch.Frequency;
+
+            double ticksPerMs = frequency * (1.0 / 1000.0);
+            double ticksPerFrame = ticksPerMs * msPerFrame;
 
             int i = 0;
             foreach (var frame in frames)
             {
                 watch.Restart();
 
-                //Console.SetCursorPosition(0, 0);
-                //ExtendedConsole.WriteBuffer(frame, rows, cols);
-                //Console.WriteLine(frame);
-                //ExtendedConsole.WriteViaHandle(buffer);
-
-                //Console.SetCursorPosition(0, 0);
                 ExtendedConsole.WriteViaHandle(frame);
 
-                while (watch.ElapsedMilliseconds < msPerFrame)
+                while (watch.ElapsedTicks < ticksPerFrame)
                 {
 
                 }
 
                 i++;
-                Console.Title = $"{i}/{frames.Count} | FPS: { 1 / (watch.ElapsedMilliseconds / 1000.0):f2}";
+                Console.Title = $"{i}/{frames.Count} | FPS: { 1 / ((watch.ElapsedTicks / ticksPerMs)/ 1000.0):f2}";
             }
 
             
