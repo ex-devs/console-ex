@@ -14,6 +14,8 @@
         {
             ProgressChar = progressChar;
             PlaceholderChar = placeholderChar;
+
+            if (total < 0) throw new ArgumentException("Total cannot be equal or less than 0");
             Total = total;
             Progress = 0;
         }
@@ -33,6 +35,8 @@
 
         private void PrintProgressBar()
         {
+            if (Progress > Total) return;
+
             // Amount of # in the ProgressBar
             double mask = (double)Progress / Total * Length;
 

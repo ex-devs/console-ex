@@ -28,8 +28,13 @@ namespace ExtendedConsole
             return frames;
         }
 
-        public static void Print(List<string> frames, double frameRate)
+        public static void Print(string filename, ushort fontSize)
         {
+            Console.CursorVisible = false;
+            ExtendedConsole.SetFont((short)fontSize);
+
+            List<string> frames = Convert(filename, out double frameRate);
+
             var watch = new Stopwatch();
             long ms = 0;
 
