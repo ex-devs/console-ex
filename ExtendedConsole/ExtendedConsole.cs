@@ -168,7 +168,6 @@ namespace ExtendedConsole
         static IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
         static SMALL_RECT lpBuffer = new SMALL_RECT() { Left = 0, Top = 0, Right = (short)(Console.BufferWidth - 1), Bottom = (short)(Console.BufferHeight - 1) };
 
-
         public static void WriteBuffer(CHAR_INFO[] buffer, short rows, short columns)
         {
             WriteConsoleOutput(hnd, buffer, new COORD() { X = columns, Y = rows }, new COORD() { X = 0, Y = 0 }, ref lpBuffer);

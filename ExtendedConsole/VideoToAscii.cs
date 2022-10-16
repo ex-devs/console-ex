@@ -39,6 +39,8 @@ namespace ExtendedConsole
             double ticksPerMs = frequency * (1.0 / 1000.0);
             double ticksPerFrame = ticksPerMs * msPerFrame;
 
+            double mspf = 0;
+
             int i = 0;
             foreach (var frame in frames)
             {
@@ -46,16 +48,16 @@ namespace ExtendedConsole
 
                 ExtendedConsole.WriteViaHandle(frame);
 
+                mspf = watch.ElapsedTicks / ticksPerMs;
+
                 while (watch.ElapsedTicks < ticksPerFrame)
                 {
 
                 }
 
                 i++;
-                Console.Title = $"{i}/{frames.Count} | FPS: { 1 / ((watch.ElapsedTicks / ticksPerMs)/ 1000.0):f2}";
+                Console.Title = $"{i}/{frames.Count} | FPS: { 1 / ((watch.ElapsedTicks / ticksPerMs) / 1000.0):f2} | mspf: {mspf}";
             }
-
-            
         }
     }
 }
