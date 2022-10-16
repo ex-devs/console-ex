@@ -6,7 +6,7 @@
         {
             Console.CursorVisible = false;
             ExtendedConsole.SetFont(1);
-            VideoToAscii.Print(VideoToAscii.Convert("", out double frameRate, out short rows, out short cols), rows, cols, frameRate);
+            VideoToAscii.Print(VideoToAscii.Convert("", out double frameRate), frameRate);
         }
     }
 }

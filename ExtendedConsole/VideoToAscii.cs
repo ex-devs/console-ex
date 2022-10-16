@@ -5,11 +5,9 @@ namespace ExtendedConsole
 {
     public static class VideoToAscii
     {
-        public static List<ExtendedConsole.CHAR_INFO[]> Convert(string filename, out double framerate, out short rows, out short cols)
+        public static List<byte[]> Convert(string filename, out double framerate)
         {
-            List<ExtendedConsole.CHAR_INFO[]> frames = new();
-            rows = 0;
-            cols = 0;
+            List<byte[]> frames = new();
             int i = 0;
             using (var videoFrameReader = new VideoFrameReader(filename))
             {
@@ -19,7 +17,7 @@ namespace ExtendedConsole
                 foreach(var frame in videoFrameReader)
                 {
                     watch.Restart();
-                    frames.Add(ImageToAscii.Convert(frame, out rows, out cols));
+                    frames.Add(ImageToAscii.Convert(frame));
                     i++; 
                     Console.Title = $"{i}/{totalFrames} | {watch.ElapsedMilliseconds} ms";
                     bar.Update(i);
@@ -30,12 +28,14 @@ namespace ExtendedConsole
             return frames;
         }
 
-        public static void Print(List<ExtendedConsole.CHAR_INFO[]> frames, short rows, short cols, double frameRate)
+        public static void Print(List<byte[]> frames, double frameRate)
         {
+            Console.ReadKey();
+            //byte[] buffer = System.Text.Encoding.ASCII.GetBytes(new string('F', Console.BufferHeight * Console.BufferWidth));
+            //byte[] buffer = System.Text.Encoding.ASCII.GetBytes(new string('F', 4));
             var watch = new Stopwatch();
-            long ms = 0;
 
-            double msPerFrame = 1 / (frameRate * 1 / 1000);
+            double msPerFrame = 1.0 / (frameRate * (1.0 / 1000.0));
 
             int i = 0;
             foreach (var frame in frames)
@@ -43,18 +43,23 @@ namespace ExtendedConsole
                 watch.Restart();
 
                 //Console.SetCursorPosition(0, 0);
-                ExtendedConsole.WriteBuffer(frame, rows, cols);
+                //ExtendedConsole.WriteBuffer(frame, rows, cols);
                 //Console.WriteLine(frame);
+                //ExtendedConsole.WriteViaHandle(buffer);
+
+                //Console.SetCursorPosition(0, 0);
+                ExtendedConsole.WriteViaHandle(frame);
 
                 while (watch.ElapsedMilliseconds < msPerFrame)
                 {
 
                 }
 
-                ms += watch.ElapsedMilliseconds;
                 i++;
-                Console.Title = $"{i}/{frames.Count} | FPS: {i / (ms / 1000.0):f2}";
+                Console.Title = $"{i}/{frames.Count} | FPS: { 1 / (watch.ElapsedMilliseconds / 1000.0):f2}";
             }
+
+            
         }
     }
 }

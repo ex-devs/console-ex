@@ -33,6 +33,8 @@
 
         private void PrintProgressBar()
         {
+            if (Progress > Total) return;
+
             // Amount of # in the ProgressBar
             double mask = (double)Progress / Total * Length;
 

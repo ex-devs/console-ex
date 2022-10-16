@@ -153,6 +153,9 @@ namespace ExtendedConsole
             public short Bottom;
         }
 
+        [DllImport("kernel32.dll")]
+        static extern bool FlushFileBuffers(IntPtr hFile);
+
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool WriteConsoleOutput(
         IntPtr hConsoleOutput,
@@ -162,16 +165,26 @@ namespace ExtendedConsole
         ref SMALL_RECT lpWriteRegion
         );
 
+        static IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+        static SMALL_RECT lpBuffer = new SMALL_RECT() { Left = 0, Top = 0, Right = (short)(Console.BufferWidth - 1), Bottom = (short)(Console.BufferHeight - 1) };
+
+
         public static void WriteBuffer(CHAR_INFO[] buffer, short rows, short columns)
         {
-            IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
-            SMALL_RECT lpBuffer = new SMALL_RECT() { Left = 0, Top = 0, Right = (short)(Console.BufferWidth - 1), Bottom = (short)(Console.BufferHeight - 1) };
-            if (hnd != INVALID_HANDLE_VALUE)
-            {
-                WriteConsoleOutput(hnd, buffer, new COORD() { X = columns, Y = rows }, new COORD() { X = 0, Y = 0 }, ref lpBuffer);
-            }
+            WriteConsoleOutput(hnd, buffer, new COORD() { X = columns, Y = rows }, new COORD() { X = 0, Y = 0 }, ref lpBuffer);
 
-                
+            //FlushFileBuffers(hnd);
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.None, ExactSpelling = false, SetLastError = true)]
+        internal static extern int WriteFile(IntPtr handle, ref byte bytes, int numBytesToWrite, out int numBytesWritten, IntPtr mustBeZero);
+
+
+        public static void WriteViaHandle(byte[] buffer)
+        {
+            int written;
+
+            WriteFile(hnd, ref buffer[0], buffer.Length, out written, IntPtr.Zero);
         }
         #endregion
     }

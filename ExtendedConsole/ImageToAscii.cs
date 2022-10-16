@@ -7,16 +7,14 @@ namespace ExtendedConsole
 {
     public static class ImageToAscii
     {
-        public static ExtendedConsole.CHAR_INFO[] Convert(string filename, out short rows, out short cols)
+        public static byte[] Convert(string filename)
         {
-            return Convert(new Bitmap(filename), out rows, out cols);
+            return Convert(new Bitmap(filename));
         }
-        public static ExtendedConsole.CHAR_INFO[] Convert(Bitmap? bitmap, out short rows, out short cols)
+        public static byte[] Convert(Bitmap? bitmap)
         {
-            rows = 0;
-            cols = 0;
             if (bitmap == null) return null;
-            return GetAverageColors(bitmap, out rows, out cols);
+            return GetAverageColors(bitmap);
         }
 
         private static char GetChar(float brightness)
@@ -32,7 +30,7 @@ namespace ExtendedConsole
         }
 
 
-        public static ExtendedConsole.CHAR_INFO[] GetAverageColors(Bitmap bitmap, out short rows, out short cols)
+        public static byte[] GetAverageColors(Bitmap bitmap)
         {
             int height = bitmap.Height;
             int width = bitmap.Width;
@@ -49,11 +47,14 @@ namespace ExtendedConsole
             int resizedWidth = (int)Math.Ceiling((double)width / xStep);
             int resizedHeight = (int)Math.Ceiling((double)height / yStep);
 
-            rows = (short)resizedHeight;
-            cols = (short)resizedWidth;
+            Console.WindowWidth = resizedWidth;
+            Console.WindowHeight = resizedHeight;
+            Console.BufferWidth = resizedWidth;
+            Console.BufferHeight = resizedHeight;
+
 
             int elementsPerGroup = xStep * yStep;
-            ExtendedConsole.CHAR_INFO[] avgColors = new ExtendedConsole.CHAR_INFO[resizedHeight * resizedWidth];
+            byte[] avgColors = new byte[resizedHeight * resizedWidth];
             float r = 0;
             float g = 0;
             float b = 0;
@@ -79,8 +80,8 @@ namespace ExtendedConsole
                         }
                     }
 
-                    avgColors[avgColorsIndex].UnicodeChar = GetChar(Color.GetBrightness((byte)(r / elementsPerGroup), (byte)(g / elementsPerGroup), (byte)(b / elementsPerGroup)));
-                    avgColors[avgColorsIndex].Attributes = 0x0008 | 0x0004 | 0x0002 | 0x0001;
+                    avgColors[avgColorsIndex] = (byte)GetChar(Color.GetBrightness((byte)(r / elementsPerGroup), (byte)(g / elementsPerGroup), (byte)(b / elementsPerGroup)));
+                    //avgColors[avgColorsIndex].Attributes = 0x0008 | 0x0004 | 0x0002 | 0x0001;
                 }
             }
             bitmap.UnlockBits(data);
