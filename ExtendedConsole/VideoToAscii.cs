@@ -14,12 +14,16 @@ namespace ExtendedConsole
                 int totalFrames = (int)(videoFrameReader.FrameRate * videoFrameReader.Duration.TotalSeconds);
                 ProgressBar bar = new(totalFrames, '#', '-', ConsoleColor.Green, ConsoleColor.White);
                 var watch = new Stopwatch();
+                double medianTimePerFrame = 0;
+                double ms = 0;
                 foreach(var frame in videoFrameReader)
                 {
                     watch.Restart();
                     frames.Add(ImageToAscii.Convert(frame));
-                    i++; 
-                    Console.Title = $"{i}/{totalFrames} | {watch.ElapsedMilliseconds} ms";
+                    i++;
+                    ms += watch.ElapsedMilliseconds;
+                    medianTimePerFrame = i / ms;
+                    Console.Title = $"{i}/{totalFrames} | {watch.ElapsedMilliseconds} ms | eta {(totalFrames-i) * medianTimePerFrame:f0} s";
                     bar.Update(i);
                 }
                 framerate = videoFrameReader.FrameRate;
@@ -56,7 +60,7 @@ namespace ExtendedConsole
                 }
 
                 i++;
-                Console.Title = $"{i}/{frames.Count} | FPS: { 1 / ((watch.ElapsedTicks / ticksPerMs) / 1000.0):f2} | mspf: {mspf}";
+                Console.Title = $"{i}/{frames.Count} | FPS: { 1 / ((watch.ElapsedTicks / ticksPerMs) / 1000.0):f2} | mspf: {mspf:f2}";
             }
         }
     }
