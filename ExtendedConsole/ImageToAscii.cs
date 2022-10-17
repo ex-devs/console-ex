@@ -31,14 +31,10 @@ namespace ExtendedConsole
             int height = bitmap.Height;
             int width = bitmap.Width;
 
-            int xStep = (int)Math.Ceiling((double)width / Console.BufferWidth);
-            int yStep = (int)Math.Ceiling((double)height / Console.BufferHeight);
+            int xStep = (int)Math.Ceiling((double)width / Console.LargestWindowWidth);
+            int yStep = (int)Math.Ceiling((double)height / Console.LargestWindowHeight);
 
             BitmapData data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
-            IntPtr ptr = data.Scan0;
-            int bytes = Math.Abs(data.Stride) * data.Height;
-            byte[] bitmapData = new byte[bytes];
-            Marshal.Copy(ptr, bitmapData, 0, bytes);
 
             int resizedWidth = (int)Math.Ceiling((double)width / xStep);
             int resizedHeight = (int)Math.Ceiling((double)height / yStep);
@@ -48,7 +44,6 @@ namespace ExtendedConsole
             Console.BufferWidth = resizedWidth;
             Console.BufferHeight = resizedHeight;
 
-
             int elementsPerGroup = xStep * yStep;
             byte[] avgColors = new byte[resizedHeight * resizedWidth];
             float r = 0;
@@ -56,29 +51,35 @@ namespace ExtendedConsole
             float b = 0;
             int avgColorsIndex = 0;
 
-            // @ImZorg 😎😎😎😎😎😎😎
-            for (int row = 0; row < height; row += yStep) 
+            unsafe
             {
-                for (int col = 0; col < width; col += xStep) 
+                byte* basePtr = (byte*)data.Scan0.ToPointer();
+
+                // @ImZorg 😎😎😎😎😎😎😎
+                for (int row = 0; row < height; row += yStep)
                 {
-                    r = 0;
-                    g = 0;
-                    b = 0;
-                    avgColorsIndex = (row / yStep) * resizedWidth + (col / xStep);
-
-                    for (int i = row; i < height && i < row + yStep; i++)
+                    for (int col = 0; col < width; col += xStep)
                     {
-                        for (int j = col; j < width && j < col + xStep; j++)
-                        {
-                            r += bitmapData[3 * (width * i + j)];
-                            g += bitmapData[3 * (width * i + j) + 1];
-                            b += bitmapData[3 * (width * i + j) + 2];
-                        }
-                    }
+                        r = 0;
+                        g = 0;
+                        b = 0;
+                        avgColorsIndex = (row / yStep) * resizedWidth + (col / xStep);
 
-                    avgColors[avgColorsIndex] = (byte)GetChar(Color.GetBrightness((byte)(r / elementsPerGroup), (byte)(g / elementsPerGroup), (byte)(b / elementsPerGroup)));
+                        for (int i = row; i < height && i < row + yStep; i++)
+                        {
+                            for (int j = col; j < width && j < col + xStep; j++)
+                            {
+                                r += basePtr[3 * (width * i + j)];
+                                g += basePtr[3 * (width * i + j) + 1];
+                                b += basePtr[3 * (width * i + j) + 2];
+                            }
+                        }
+
+                        avgColors[avgColorsIndex] = (byte)GetChar(Color.GetBrightness((byte)(r / elementsPerGroup), (byte)(g / elementsPerGroup), (byte)(b / elementsPerGroup)));
+                    }
                 }
             }
+            
             bitmap.UnlockBits(data);
             return avgColors;
         }
