@@ -7,11 +7,12 @@ namespace ExtendedConsole
     {
         public static List<byte[]> Convert(string filename, out double framerate)
         {
-            List<byte[]> frames = new();
+            List<byte[]> frames;
             int i = 0;
             using (var videoFrameReader = new VideoFrameReader(filename))
             {
                 int totalFrames = (int)(videoFrameReader.FrameRate * videoFrameReader.Duration.TotalSeconds);
+                frames = new(totalFrames);
                 ProgressBar bar = new(totalFrames, '#', '-', ConsoleColor.Green, ConsoleColor.White);
                 var watch = new Stopwatch();
                 double medianTimePerFrame = 0;
