@@ -34,9 +34,14 @@ namespace ExtendedConsole
             return frames;
         }
 
-        public static void Print(List<byte[]> frames, double frameRate)
+        public static void Print(string filename, short fontSize)
         {
+            Console.CursorVisible = false;
+            ExtendedConsole.SetFont(fontSize);
+
+            List<byte[]> frames = Convert(filename, out double frameRate);
             Console.ReadKey();
+
             var watch = new Stopwatch();
 
             double msPerFrame = 1.0 / (frameRate * (1.0 / 1000.0));
@@ -45,7 +50,7 @@ namespace ExtendedConsole
             double ticksPerMs = frequency * (1.0 / 1000.0);
             double ticksPerFrame = ticksPerMs * msPerFrame;
 
-            double mspf = 0;
+            double mspf;
 
             int i = 0;
             foreach (var frame in frames)
