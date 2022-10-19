@@ -29,14 +29,15 @@ namespace ExtendedConsole
 
                 foreach(var frame in videoFrameReader)
                 {
-                    watch.Restart();
                     frames.Add(ImageToAscii.Convert(frame, resizedWidth, resizedHeight, xScale, yScale));
                     i++;
                     ms += watch.ElapsedMilliseconds;
-                    medianTimePerFrame = i / ms;
-                    Console.Title = $"{i}/{totalFrames} | {watch.ElapsedMilliseconds} ms | eta {(totalFrames-i) * medianTimePerFrame:f0} s";
+                    medianTimePerFrame = ms / i;
+                    Console.Title = $"{i}/{totalFrames} | {watch.ElapsedMilliseconds} ms | eta {(totalFrames - i) * (medianTimePerFrame / 1000.0):f0} s";
                     bar.Update(i);
+                    watch.Restart();
                 }
+
                 framerate = videoFrameReader.FrameRate;
             }
             Console.Clear();
