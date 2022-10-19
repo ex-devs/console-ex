@@ -38,51 +38,41 @@ namespace ExtendedConsole
             return length > 0;
         }
 
-        public static byte[][] Convert(string filename, out double framerate)
+        public static List<byte[]> Convert(string filename, out double framerate)
         {
-            byte[][] frames;
+            List<byte[]> frames;
             int i = 0;
             using (var videoFrameReader = new VideoFrameReader(filename))
             {
                 int totalFrames = (int)Math.Ceiling(videoFrameReader.FrameRate * videoFrameReader.Duration.TotalSeconds);
-                frames = new byte[totalFrames][];
+                frames = new List<byte[]>(totalFrames);
+
+                ImageToAscii.ScaleImageToConsole(videoFrameReader.Width, videoFrameReader.Height, out int xScale, out int yScale);
+                ImageToAscii.GetScaledSize(videoFrameReader.Width, videoFrameReader.Height, xScale, yScale, out int resizedWidth, out int resizedHeight);
+
+                Console.WindowWidth = resizedWidth;
+                Console.WindowHeight = resizedHeight;
+                Console.BufferWidth = resizedWidth;
+                Console.BufferHeight = resizedHeight;
 
                 ProgressBar bar = new(totalFrames, '#', '-', ConsoleColor.Green, ConsoleColor.White);
                 bar.Update(0);
                 double ms = 0;
+                double medianTimePerFrame = 0;
+                var watch = new Stopwatch();
+                watch.Start();
 
-                Mutex mutex = new();
-                IEnumerator<Bitmap> enumerator = videoFrameReader.GetEnumerator();
-                Thread[] threads = new Thread[Environment.ProcessorCount];
-                for(int threadID = 0; threadID < threads.Length; threadID++)
+                foreach(var frame in videoFrameReader)
                 {
-                    Thread currentThread = currentThread = new(() =>
-                    {
-                        var watch = new Stopwatch();
-
-                        while (GetNextFrames(mutex, enumerator, out Bitmap[] frameRange, out int startIndex, out int length))
-                        {
-                            for (int frameIndex = 0; frameIndex < length; frameIndex++)
-                            {
-                                watch.Restart();
-                                frames[startIndex] = ImageToAscii.Convert(frameRange[frameIndex]);
-                                startIndex++;
-                                ms += watch.ElapsedMilliseconds;
-                                Console.Title = $"{Frame}/{totalFrames} | {watch.ElapsedMilliseconds} ms | {ms / Frame:f2} ms | {ms / threads.Length / 1000:f2} s";
-                            }
-                            mutex.WaitOne();
-                            bar.Update(Frame);
-                            mutex.ReleaseMutex();
-                        }
-                    });
-                    threads[threadID] = currentThread;
-                    currentThread.Start();
+                    frames.Add(ImageToAscii.Convert(frame, resizedWidth, resizedHeight, xScale, yScale));
+                    i++;
+                    ms += watch.ElapsedMilliseconds;
+                    medianTimePerFrame = ms / i;
+                    Console.Title = $"{i}/{totalFrames} | {watch.ElapsedMilliseconds} ms | eta {(totalFrames - i) * (medianTimePerFrame / 1000.0):f0} s";
+                    bar.Update(i);
+                    watch.Restart();
                 }
 
-                foreach (Thread thread in threads)
-                {
-                    thread.Join();
-                }
                 framerate = videoFrameReader.FrameRate;
             }
             Console.Clear();
@@ -94,7 +84,7 @@ namespace ExtendedConsole
             Console.CursorVisible = false;
             ExtendedConsole.SetFont(fontSize);
 
-            byte[][] frames = Convert(filename, out double frameRate);
+            var frames = Convert(filename, out double frameRate);
             Console.ReadKey();
 
             var watch = new Stopwatch();
@@ -122,7 +112,7 @@ namespace ExtendedConsole
                 }
 
                 i++;
-                Console.Title = $"{i}/{frames.Length} | FPS: {1 / ((watch.ElapsedTicks / ticksPerMs) / 1000.0):f2} | mspf: {mspf:f2}";
+                Console.Title = $"{i}/{frames.Count} | FPS: {1 / ((watch.ElapsedTicks / ticksPerMs) / 1000.0):f2} | mspf: {mspf:f2}";
             }
         }
     
@@ -132,10 +122,20 @@ namespace ExtendedConsole
             ExtendedConsole.SetFont(fontSize);
 
             Stack<byte[]> frames;
-            const int preRenderAmount = 50;
+            
+            int preRenderAmount = 0;
 
             using (var videoFrameReader = new VideoFrameReader(filename))
             {
+                preRenderAmount = (int)videoFrameReader.FrameRate;
+                ImageToAscii.ScaleImageToConsole(videoFrameReader.Width, videoFrameReader.Height, out int xScale, out int yScale);
+                ImageToAscii.GetScaledSize(videoFrameReader.Width, videoFrameReader.Height, xScale, yScale, out int resizedWidth, out int resizedHeight);
+
+                Console.WindowWidth = resizedWidth;
+                Console.WindowHeight = resizedHeight;
+                Console.BufferWidth = resizedWidth;
+                Console.BufferHeight = resizedHeight;
+
                 int totalFrames = (int)Math.Ceiling(videoFrameReader.FrameRate * videoFrameReader.Duration.TotalSeconds);
                 frames = new(preRenderAmount);
                 int framesRendered = 0;
@@ -143,9 +143,9 @@ namespace ExtendedConsole
                 {
                     foreach(var frame in videoFrameReader)
                     {
-                        frames.Push(ImageToAscii.Convert(frame));
+                        frames.Push(ImageToAscii.Convert(frame,resizedWidth, resizedHeight, xScale, yScale));
                         framesRendered++;
-
+                        frame.Dispose();
                         while (frames.Count == preRenderAmount)
                         {
 
@@ -159,7 +159,6 @@ namespace ExtendedConsole
 
                 double msPerFrame = 1.0 / (videoFrameReader.FrameRate * (1.0 / 1000.0));
                 long frequency = Stopwatch.Frequency;
-
                 double ticksPerMs = frequency * (1.0 / 1000.0);
                 double ticksPerFrame = ticksPerMs * msPerFrame;
                 double mspf;

@@ -1,22 +1,10 @@
 ﻿using System.Drawing;
 using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace ExtendedConsole
 {
     public static class ImageToAscii
     {
-        public static byte[] Convert(string filename)
-        {
-            return Convert(new Bitmap(filename));
-        }
-        public static byte[] Convert(Bitmap? bitmap)
-        {
-            if (bitmap == null) return Array.Empty<byte>();
-            return GetAverageColors(bitmap);
-        }
-
         const string chars = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
         static readonly int maxIndex = chars.Length - 1;
 
@@ -25,26 +13,35 @@ namespace ExtendedConsole
             return chars[(int)Math.Ceiling(brightness * maxIndex)];
         }
 
+        public static void ScaleImageToConsole(int width, int height, out int xScale, out int yScale)
+        {
+            xScale = (int)Math.Ceiling((double)width / Console.LargestWindowWidth);
+            yScale = (int)Math.Ceiling((double)height / Console.LargestWindowHeight);
+        }
 
-        public static byte[] GetAverageColors(Bitmap bitmap)
+        public static void GetScaledSize(int width, int height, int xScale, int yScale, out int resizedWidth, out int resizedHeight)
+        {
+            resizedWidth = (int)Math.Ceiling((double) width / xScale);
+            resizedHeight = (int)Math.Ceiling((double) height / yScale);
+        }
+
+        public static byte[] Convert(string filename)
+        {
+            Bitmap bitmap = new Bitmap(filename);
+            ScaleImageToConsole(bitmap.Width, bitmap.Height, out int xScale, out int yScale);
+            GetScaledSize(bitmap.Width, bitmap.Height, xScale, yScale, out int resizedWidth, out int resizedHeight);
+
+            return Convert(bitmap, resizedWidth, resizedHeight, xScale, yScale);
+        }
+
+        public static byte[] Convert(Bitmap bitmap, int resizedWidth, int resizedHeight, int xScale, int yScale)
         {
             int height = bitmap.Height;
             int width = bitmap.Width;
 
-            int xStep = (int)Math.Ceiling((double)width / Console.LargestWindowWidth);
-            int yStep = (int)Math.Ceiling((double)height / Console.LargestWindowHeight);
-
             BitmapData data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
 
-            int resizedWidth = (int)Math.Ceiling((double)width / xStep);
-            int resizedHeight = (int)Math.Ceiling((double)height / yStep);
-
-            Console.WindowWidth = resizedWidth;
-            Console.WindowHeight = resizedHeight;
-            Console.BufferWidth = resizedWidth;
-            Console.BufferHeight = resizedHeight;
-
-            int elementsPerGroup = xStep * yStep;
+            int elementsPerGroup = xScale * yScale;
             byte[] avgColors = new byte[resizedHeight * resizedWidth];
             float r = 0;
             float g = 0;
@@ -56,18 +53,18 @@ namespace ExtendedConsole
                 byte* basePtr = (byte*)data.Scan0.ToPointer();
 
                 // @ImZorg 😎😎😎😎😎😎😎
-                for (int row = 0; row < height; row += yStep)
+                for (int row = 0; row < height; row += yScale)
                 {
-                    for (int col = 0; col < width; col += xStep)
+                    for (int col = 0; col < width; col += xScale)
                     {
                         r = 0;
                         g = 0;
                         b = 0;
-                        avgColorsIndex = (row / yStep) * resizedWidth + (col / xStep);
+                        avgColorsIndex = (row / yScale) * resizedWidth + (col / xScale);
 
-                        for (int i = row; i < height && i < row + yStep; i++)
+                        for (int i = row; i < height && i < row + yScale; i++)
                         {
-                            for (int j = col; j < width && j < col + xStep; j++)
+                            for (int j = col; j < width && j < col + xScale; j++)
                             {
                                 r += basePtr[3 * (width * i + j)];
                                 g += basePtr[3 * (width * i + j) + 1];
