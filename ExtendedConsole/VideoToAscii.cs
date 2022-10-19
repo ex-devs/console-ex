@@ -48,6 +48,7 @@ namespace ExtendedConsole
                 frames = new byte[totalFrames][];
 
                 ProgressBar bar = new(totalFrames, '#', '-', ConsoleColor.Green, ConsoleColor.White);
+                bar.Update(0);
                 double ms = 0;
 
                 Mutex mutex = new();
@@ -59,19 +60,15 @@ namespace ExtendedConsole
                     {
                         var watch = new Stopwatch();
 
-                        Bitmap[] frameRange;
-                        int startIndex;
-                        int length;
-
-                        while(GetNextFrames(mutex, enumerator, out frameRange, out startIndex, out length))
+                        while (GetNextFrames(mutex, enumerator, out Bitmap[] frameRange, out int startIndex, out int length))
                         {
-                            for(int frameIndex = 0; frameIndex < length; frameIndex++)
+                            for (int frameIndex = 0; frameIndex < length; frameIndex++)
                             {
                                 watch.Restart();
                                 frames[startIndex] = ImageToAscii.Convert(frameRange[frameIndex]);
                                 startIndex++;
                                 ms += watch.ElapsedMilliseconds;
-                                Console.Title = $"{Frame}/{totalFrames} | {Thread.CurrentThread.ManagedThreadId} {watch.ElapsedMilliseconds} ms | {ms / Frame:f2} ms | {ms / threads.Length:f2} ms";
+                                Console.Title = $"{Frame}/{totalFrames} | {watch.ElapsedMilliseconds} ms | {ms / Frame:f2} ms | {ms / threads.Length / 1000:f2} s";
                             }
                             mutex.WaitOne();
                             bar.Update(Frame);
@@ -86,18 +83,6 @@ namespace ExtendedConsole
                 {
                     thread.Join();
                 }
-
-                /*
-                foreach(var frame in videoFrameReader)
-                {
-                    watch.Restart();
-                    frames.Add(ImageToAscii.Convert(frame));
-                    i++;
-                    ms += watch.ElapsedMilliseconds;
-                    medianTimePerFrame = i / ms;
-                    Console.Title = $"{i}/{totalFrames} | {watch.ElapsedMilliseconds} ms | eta {(totalFrames-i) * medianTimePerFrame:f0} s";
-                    bar.Update(i);
-                }*/
                 framerate = videoFrameReader.FrameRate;
             }
             Console.Clear();
@@ -138,6 +123,67 @@ namespace ExtendedConsole
 
                 i++;
                 Console.Title = $"{i}/{frames.Length} | FPS: {1 / ((watch.ElapsedTicks / ticksPerMs) / 1000.0):f2} | mspf: {mspf:f2}";
+            }
+        }
+    
+        public static void PrintAsync(string filename, short fontSize)
+        {
+            Console.CursorVisible = false;
+            ExtendedConsole.SetFont(fontSize);
+
+            Stack<byte[]> frames;
+            const int preRenderAmount = 50;
+
+            using (var videoFrameReader = new VideoFrameReader(filename))
+            {
+                int totalFrames = (int)Math.Ceiling(videoFrameReader.FrameRate * videoFrameReader.Duration.TotalSeconds);
+                frames = new(preRenderAmount);
+                int framesRendered = 0;
+                Thread renderThread = new(() =>
+                {
+                    foreach(var frame in videoFrameReader)
+                    {
+                        frames.Push(ImageToAscii.Convert(frame));
+                        framesRendered++;
+
+                        while (frames.Count == preRenderAmount)
+                        {
+
+                        }
+                    }
+                });
+
+                renderThread.Start();
+
+                var watch = new Stopwatch();
+
+                double msPerFrame = 1.0 / (videoFrameReader.FrameRate * (1.0 / 1000.0));
+                long frequency = Stopwatch.Frequency;
+
+                double ticksPerMs = frequency * (1.0 / 1000.0);
+                double ticksPerFrame = ticksPerMs * msPerFrame;
+                double mspf;
+
+                int printedFrames = 0;
+
+                while (printedFrames < totalFrames)
+                {
+                    if (frames.TryPop(out byte[] frame))
+                    {
+                        watch.Restart();
+                        ExtendedConsole.WriteViaHandle(frame);
+                        mspf = watch.ElapsedTicks / ticksPerMs;
+
+                        while (watch.ElapsedTicks < ticksPerFrame)
+                        {
+
+                        }
+
+                        printedFrames++;
+                        Console.Title = $"{framesRendered - printedFrames} | FPS: {1 / ((watch.ElapsedTicks / ticksPerMs) / 1000.0):f2} | mspf: {mspf:f2}";
+                    }
+                }
+                renderThread.Join();
             }
         }
     }
