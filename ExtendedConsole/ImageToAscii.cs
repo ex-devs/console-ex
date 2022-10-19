@@ -13,7 +13,7 @@ namespace ExtendedConsole
         }
         public static byte[] Convert(Bitmap? bitmap)
         {
-            if (bitmap == null) return null;
+            if (bitmap == null) return Array.Empty<byte>();
             return GetAverageColors(bitmap);
         }
 

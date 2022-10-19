@@ -1,7 +1,6 @@
 ﻿using GleamTech.VideoUltimate;
 using System.Diagnostics;
 using System.Drawing;
-using System.Threading;
 
 namespace ExtendedConsole
 {
@@ -18,6 +17,25 @@ namespace ExtendedConsole
             Frame++;
             mutex.ReleaseMutex();
             return status;
+        }
+
+        private static bool GetNextFrames(Mutex mutex, IEnumerator<Bitmap> enumerator, out Bitmap[] bitmaps, out int startIndex, out int length)
+        {
+            mutex.WaitOne();
+
+            length = 0;
+            startIndex = Frame;
+            Bitmap[] frames = new Bitmap[20];
+            while (enumerator.MoveNext())
+            {
+                frames[length] = enumerator.Current;
+                length++;
+                if (length == 20) break;
+            }
+            Frame += length;
+            bitmaps = frames;
+            mutex.ReleaseMutex();
+            return length > 0;
         }
 
         public static byte[][] Convert(string filename, out double framerate)
@@ -40,16 +58,24 @@ namespace ExtendedConsole
                     Thread currentThread = currentThread = new(() =>
                     {
                         var watch = new Stopwatch();
-                        Bitmap currentFrame;
-                        int frameIndex;
 
-                        while(GetNextFrame(mutex, enumerator, out currentFrame, out frameIndex))
+                        Bitmap[] frameRange;
+                        int startIndex;
+                        int length;
+
+                        while(GetNextFrames(mutex, enumerator, out frameRange, out startIndex, out length))
                         {
-                            watch.Restart();
-                            frames[frameIndex] = ImageToAscii.Convert(currentFrame);
-                            //currentFrame.Dispose();
-                            ms += watch.ElapsedMilliseconds;
-                            Console.Title = $"{frameIndex}/{totalFrames} | {Thread.CurrentThread.ManagedThreadId} {watch.ElapsedMilliseconds} ms | {ms/ frameIndex:f2} ms";
+                            for(int frameIndex = 0; frameIndex < length; frameIndex++)
+                            {
+                                watch.Restart();
+                                frames[startIndex] = ImageToAscii.Convert(frameRange[frameIndex]);
+                                startIndex++;
+                                ms += watch.ElapsedMilliseconds;
+                                Console.Title = $"{Frame}/{totalFrames} | {Thread.CurrentThread.ManagedThreadId} {watch.ElapsedMilliseconds} ms | {ms / Frame:f2} ms | {ms / threads.Length:f2} ms";
+                            }
+                            mutex.WaitOne();
+                            bar.Update(Frame);
+                            mutex.ReleaseMutex();
                         }
                     });
                     threads[threadID] = currentThread;
