@@ -14,14 +14,23 @@ namespace ExtendedConsole
                 int totalFrames = (int)Math.Ceiling(videoFrameReader.FrameRate * videoFrameReader.Duration.TotalSeconds);
                 frames = new List<byte[]>(totalFrames);
 
+                ImageToAscii.ScaleImageToConsole(videoFrameReader.Width, videoFrameReader.Height, out int xScale, out int yScale);
+                ImageToAscii.GetScaledSize(videoFrameReader.Width, videoFrameReader.Height, xScale, yScale, out int resizedWidth, out int resizedHeight);
+
+                Console.WindowWidth = resizedWidth;
+                Console.WindowHeight = resizedHeight;
+                Console.BufferWidth = resizedWidth;
+                Console.BufferHeight = resizedHeight;
+
                 ProgressBar bar = new(totalFrames, '#', '-', ConsoleColor.Green, ConsoleColor.White);
                 var watch = new Stopwatch();
                 double medianTimePerFrame = 0;
                 double ms = 0;
+
                 foreach(var frame in videoFrameReader)
                 {
                     watch.Restart();
-                    frames.Add(ImageToAscii.Convert(frame));
+                    frames.Add(ImageToAscii.Convert(frame, resizedWidth, resizedHeight, xScale, yScale));
                     i++;
                     ms += watch.ElapsedMilliseconds;
                     medianTimePerFrame = i / ms;
