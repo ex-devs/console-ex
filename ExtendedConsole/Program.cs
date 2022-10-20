@@ -4,7 +4,7 @@
     {
         public static void Main()
         {
-            VideoToAscii.PrintAsync("", 1);
+            VideoToAscii.PrintInParallel("", 1);
         }
     }
 }
