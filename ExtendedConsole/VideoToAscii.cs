@@ -1,5 +1,6 @@
 ﻿using GleamTech.VideoUltimate;
 using System.Diagnostics;
+using System.Drawing;
 
 namespace ExtendedConsole
 {
@@ -9,7 +10,7 @@ namespace ExtendedConsole
         {
             List<byte[]> frames;
             int i = 0;
-            using (var videoFrameReader = new VideoFrameReader(filename))
+            using (VideoFrameReader videoFrameReader = new VideoFrameReader(filename))
             {
                 int totalFrames = (int)Math.Ceiling(videoFrameReader.FrameRate * videoFrameReader.Duration.TotalSeconds);
                 frames = new List<byte[]>(totalFrames);
@@ -23,13 +24,15 @@ namespace ExtendedConsole
                 Console.BufferHeight = resizedHeight;
 
                 ProgressBar bar = new(totalFrames, '#', '-', ConsoleColor.Green, ConsoleColor.White);
-                var watch = new Stopwatch();
+                Stopwatch watch = new Stopwatch();
+                watch.Start();
                 double medianTimePerFrame = 0;
                 double ms = 0;
 
-                foreach(var frame in videoFrameReader)
+                foreach(Bitmap frame in videoFrameReader)
                 {
                     frames.Add(ImageToAscii.Convert(frame, resizedWidth, resizedHeight, xScale, yScale));
+                    frame.Dispose();
                     i++;
                     ms += watch.ElapsedMilliseconds;
                     medianTimePerFrame = ms / i;
@@ -50,24 +53,21 @@ namespace ExtendedConsole
             ExtendedConsole.SetFont(fontSize);
 
             List<byte[]> frames = Convert(filename, out double frameRate);
-            Console.ReadKey();
 
-            var watch = new Stopwatch();
-
-            double msPerFrame = 1.0 / (frameRate * (1.0 / 1000.0));
+            Stopwatch watch = new Stopwatch();
             long frequency = Stopwatch.Frequency;
 
+            double msPerFrame = 1.0 / (frameRate * (1.0 / 1000.0));
             double ticksPerMs = frequency * (1.0 / 1000.0);
             double ticksPerFrame = ticksPerMs * msPerFrame;
-
             double mspf;
 
             int i = 0;
-            foreach (var frame in frames)
+            foreach (byte[] frame in frames)
             {
                 watch.Restart();
 
-                ExtendedConsole.WriteViaHandle(frame);
+                ExtendedConsole.WriteBuffer(frame);
 
                 mspf = watch.ElapsedTicks / ticksPerMs;
 
@@ -77,7 +77,7 @@ namespace ExtendedConsole
                 }
 
                 i++;
-                Console.Title = $"{i}/{frames.Count} | FPS: { 1 / ((watch.ElapsedTicks / ticksPerMs) / 1000.0):f2} | mspf: {mspf:f2}";
+                Console.Title = $"{i}/{frames.Count} | FPS: { 1 / (watch.ElapsedTicks / ticksPerMs / 1000.0):f2} | mspf: {mspf:f2}";
             }
         }
     }

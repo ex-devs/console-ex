@@ -4,12 +4,17 @@ namespace ExtendedConsole
 {
     public static class ExtendedConsole
     {
+        private const int STD_OUTPUT_HANDLE = -11;
+        private const int TMPF_TRUETYPE = 4;
+        private const int LF_FACESIZE = 32;
+        private static readonly IntPtr INVALID_HANDLE_VALUE = new(-1);
+        private static IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+
         #region Properties
         public static CONSOLE_FONT_INFO_EX Font
         {
             get
             {
-                IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
                 if (hnd != INVALID_HANDLE_VALUE)
                 {
                     CONSOLE_FONT_INFO_EX info = new();
@@ -26,7 +31,6 @@ namespace ExtendedConsole
         {
             get
             {
-                IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
                 if (hnd != INVALID_HANDLE_VALUE)
                 {
                     CONSOLE_FONT_INFO_EX info = new();
@@ -50,7 +54,6 @@ namespace ExtendedConsole
         #region Change Font
         public unsafe static void SetFont(short fontSize, string font)
         {
-            IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
             if (hnd != INVALID_HANDLE_VALUE)
             {
                 CONSOLE_FONT_INFO_EX info = new();
@@ -72,7 +75,6 @@ namespace ExtendedConsole
         }
         public unsafe static void SetFont(short fontSize)
         {
-            IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
             if (hnd != INVALID_HANDLE_VALUE)
             {
                 CONSOLE_FONT_INFO_EX info = new();
@@ -86,27 +88,55 @@ namespace ExtendedConsole
                 }
             }
         }
+        #endregion
 
+        #region WriteConsoleOutput
+        public static void WriteConsoleOutput(CHAR_INFO[] buffer, short rows, short columns)
+        {
+            SMALL_RECT lpBuffer = new SMALL_RECT() { Left = 0, Top = 0, Right = (short)(Console.BufferWidth - 1), Bottom = (short)(Console.BufferHeight - 1) };
+
+            WriteConsoleOutput(hnd, buffer, new COORD() { X = columns, Y = rows }, new COORD() { X = 0, Y = 0 }, ref lpBuffer);
+        }
+
+        public static void WriteBuffer(byte[] buffer)
+        {
+            WriteFile(hnd, ref buffer[0], buffer.Length, out int written, IntPtr.Zero);
+        }
+        #endregion
+
+        #region DLLImports
         [DllImport("kernel32.dll", SetLastError = true)]
-        static extern IntPtr GetStdHandle(int nStdHandle);
+        private static extern IntPtr GetStdHandle(int nStdHandle);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        static extern bool GetCurrentConsoleFontEx(
-               IntPtr consoleOutput,
-               bool maximumWindow,
-               ref CONSOLE_FONT_INFO_EX lpConsoleCurrentFontEx);
+        private static extern bool GetCurrentConsoleFontEx(
+                IntPtr consoleOutput,
+                bool maximumWindow,
+                ref CONSOLE_FONT_INFO_EX lpConsoleCurrentFontEx);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool SetCurrentConsoleFontEx(
-               IntPtr consoleOutput,
-               bool maximumWindow,
-               CONSOLE_FONT_INFO_EX consoleCurrentFontEx);
+        private static extern bool SetCurrentConsoleFontEx(
+                IntPtr consoleOutput,
+                bool maximumWindow,
+                CONSOLE_FONT_INFO_EX consoleCurrentFontEx);
 
-        private const int STD_OUTPUT_HANDLE = -11;
-        private const int TMPF_TRUETYPE = 4;
-        private const int LF_FACESIZE = 32;
-        private static readonly IntPtr INVALID_HANDLE_VALUE = new(-1);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool WriteConsoleOutput(
+                IntPtr hConsoleOutput,
+                CHAR_INFO[] lpBuffer,
+                COORD dwBufferSize,
+                COORD dwBufferCoord,
+                ref SMALL_RECT lpWriteRegion);
 
+        [DllImport("kernel32.dll", CharSet = CharSet.None, ExactSpelling = false, SetLastError = true)]
+        private static extern int WriteFile(IntPtr handle,
+                ref byte bytes, 
+                int numBytesToWrite, 
+                out int numBytesWritten, 
+                IntPtr mustBeZero);
+        #endregion
+
+        #region StructDefinitions
         [StructLayout(LayoutKind.Sequential)]
         public struct COORD
         {
@@ -130,9 +160,7 @@ namespace ExtendedConsole
             internal int FontWeight;
             internal fixed char FaceName[LF_FACESIZE];
         }
-        #endregion
 
-        #region WriteConsoleOutput
         [StructLayout(LayoutKind.Explicit)]
         public struct CHAR_INFO
         {
@@ -151,39 +179,6 @@ namespace ExtendedConsole
             public short Top;
             public short Right;
             public short Bottom;
-        }
-
-        [DllImport("kernel32.dll")]
-        static extern bool FlushFileBuffers(IntPtr hFile);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool WriteConsoleOutput(
-        IntPtr hConsoleOutput,
-        CHAR_INFO[] lpBuffer,
-        COORD dwBufferSize,
-        COORD dwBufferCoord,
-        ref SMALL_RECT lpWriteRegion
-        );
-
-        static IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
-        static SMALL_RECT lpBuffer = new SMALL_RECT() { Left = 0, Top = 0, Right = (short)(Console.BufferWidth - 1), Bottom = (short)(Console.BufferHeight - 1) };
-
-        public static void WriteBuffer(CHAR_INFO[] buffer, short rows, short columns)
-        {
-            WriteConsoleOutput(hnd, buffer, new COORD() { X = columns, Y = rows }, new COORD() { X = 0, Y = 0 }, ref lpBuffer);
-
-            //FlushFileBuffers(hnd);
-        }
-
-        [DllImport("kernel32.dll", CharSet = CharSet.None, ExactSpelling = false, SetLastError = true)]
-        internal static extern int WriteFile(IntPtr handle, ref byte bytes, int numBytesToWrite, out int numBytesWritten, IntPtr mustBeZero);
-
-
-        public static void WriteViaHandle(byte[] buffer)
-        {
-            int written;
-
-            WriteFile(hnd, ref buffer[0], buffer.Length, out written, IntPtr.Zero);
         }
         #endregion
     }

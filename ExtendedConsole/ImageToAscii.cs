@@ -36,6 +36,14 @@ namespace ExtendedConsole
             return Convert(bitmap, resizedWidth, resizedHeight, xScale, yScale);
         }
 
+        public static byte[] Convert(Bitmap bitmap)
+        {
+            ScaleImageToConsole(bitmap.Width, bitmap.Height, out int xScale, out int yScale);
+            GetScaledSize(bitmap.Width, bitmap.Height, xScale, yScale, out int resizedWidth, out int resizedHeight);
+
+            return Convert(bitmap, resizedWidth, resizedHeight, xScale, yScale);
+        }
+
         public static byte[] Convert(Bitmap bitmap, int resizedWidth, int resizedHeight, int xScale, int yScale)
         {
             int height = bitmap.Height;
