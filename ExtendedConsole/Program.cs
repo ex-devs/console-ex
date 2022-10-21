@@ -4,7 +4,7 @@
     {
         public static void Main()
         {
-            VideoToAscii.Print("", 1);
+            VideoToAscii.PrintInParallel("Bad_Apple_PV_FtutLA63Cp8.mov", 1);
         }
     }
 }
