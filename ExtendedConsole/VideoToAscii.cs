@@ -14,6 +14,7 @@ namespace ExtendedConsole
             using (VideoFrameReader videoFrameReader = new(filename))
             {
                 int totalFrames = (int)Math.Ceiling(videoFrameReader.FrameRate * videoFrameReader.Duration.TotalSeconds);
+
                 frames = new List<byte[]>(totalFrames);
 
                 ImageToAscii.ScaleImageToConsole(videoFrameReader.Width, videoFrameReader.Height, out int xScale, out int yScale);
@@ -100,7 +101,8 @@ namespace ExtendedConsole
             Console.BufferWidth = resizedWidth;
             Console.BufferHeight = resizedHeight;
 
-            int totalFrames = (int)Math.Ceiling(videoFrameReader.FrameRate * videoFrameReader.Duration.TotalSeconds);
+            int totalFrames = (int)Math.Floor(videoFrameReader.FrameRate * videoFrameReader.Duration.TotalSeconds);
+
             preRenderAmount = (int)Math.Ceiling(videoFrameReader.FrameRate);
             int renderedFrames = 0;
             int printedFrames = 0;
@@ -128,28 +130,33 @@ namespace ExtendedConsole
             renderThread.Start();
 
             Stopwatch watch = new();
+            
             long frequency = Stopwatch.Frequency;
 
-            double msPerFrame = 1.0 / (videoFrameReader.FrameRate * (1.0 / 1000.0));
-            double ticksPerMs = frequency * (1.0 / 1000.0);
+            double msPerFrame = 1000.0 / videoFrameReader.FrameRate;
+            double ticksPerMs = frequency / 1000.0;
             double ticksPerFrame = ticksPerMs * msPerFrame;
             double mspf;
 
+            watch.Start();
+
+            double fps;
             while (printedFrames < totalFrames)
             {
                 if (frames.TryDequeue(out byte[]? frame))
                 {
-                    watch.Restart();
                     ExtendedConsole.WriteBuffer(frame);
                     mspf = watch.ElapsedTicks / ticksPerMs;
 
                     while (watch.ElapsedTicks < ticksPerFrame)
                     {
-
+                        
                     }
 
+                    fps = (double)frequency / watch.ElapsedTicks;
                     printedFrames++;
-                    Console.Title = $"PRF {renderedFrames - printedFrames} | FPS: {1 / (watch.ElapsedTicks / ticksPerMs / 1000.0):f2} | mspf: {mspf:f2} | {printedFrames}/{totalFrames}";
+                    watch.Restart();
+                    Console.Title = $"PRF {renderedFrames - printedFrames} | FPS: {fps:f2} | mspf: {mspf:f2} | {printedFrames}/{totalFrames}";
                 }
             }
         }
